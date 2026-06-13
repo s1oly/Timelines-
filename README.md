@@ -15,6 +15,8 @@ laid out on a smooth horizontal scrolling track.
 - **Persistence** — metadata in `localStorage`, media blobs in IndexedDB;
   the last active timeline and scroll position are restored on load
 - **Dark mode**, scroll-triggered entry animations, fully responsive
+- **Present mode**, ability to present a timeline in google slide like manner, with ability to swipe between moments in timeline
+
 
 ## Stack
 

@@ -6,7 +6,9 @@ import TimelineView from './components/TimelineView.jsx'
 import MomentForm from './components/MomentForm.jsx'
 import MomentDetail from './components/MomentDetail.jsx'
 import WelcomeScreen from './components/WelcomeScreen.jsx'
+import PresentationMode from './components/PresentationMode.jsx'
 import { deleteMedia, putMedia } from './lib/db.js'
+import { exportTimeline } from './lib/exportTimeline.js'
 import {
   clearScroll,
   loadActiveId,
@@ -30,6 +32,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [formState, setFormState] = useState(null) // { moment? } — open when truthy
   const [detailId, setDetailId] = useState(null)
+  const [presenting, setPresenting] = useState(false)
 
   useEffect(() => saveData(data), [data])
   useEffect(() => saveActiveId(activeId), [activeId])
@@ -152,6 +155,10 @@ export default function App() {
     [data.moments, activeId]
   )
 
+  const exportActiveTimeline = useCallback(() => {
+    if (activeTimeline) exportTimeline(activeTimeline, moments)
+  }, [activeTimeline, moments])
+
   return (
     <div className="flex h-dvh overflow-hidden">
       <Sidebar
@@ -178,6 +185,8 @@ export default function App() {
               momentCount={moments.length}
               onOpenSidebar={() => setSidebarOpen(true)}
               onAddMoment={() => setFormState({})}
+              onPresent={() => setPresenting(true)}
+              onExport={exportActiveTimeline}
             />
             <TimelineView
               key={activeTimeline.id}
@@ -214,6 +223,13 @@ export default function App() {
             }}
             onDelete={() => deleteMoment(detailMoment.id)}
             onClose={() => setDetailId(null)}
+          />
+        )}
+        {presenting && moments.length > 0 && (
+          <PresentationMode
+            key="present"
+            moments={moments}
+            onClose={() => setPresenting(false)}
           />
         )}
       </AnimatePresence>
