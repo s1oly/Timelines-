@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
-function TimelineItem({ timeline, active, onSelect, onRename, onDelete }) {
+function TimelineItem({ timeline, active, onSelect, onRename, onDuplicate, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(timeline.name)
 
@@ -67,6 +67,15 @@ function TimelineItem({ timeline, active, onSelect, onRename, onDelete }) {
         </svg>
       </button>
       <button
+        onClick={() => onDuplicate(timeline.id)}
+        title="Duplicate timeline"
+        className="rounded-lg p-1.5 text-slate-400 opacity-0 transition-all hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+      >
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3a1.5 1.5 0 0 1-1.5 1.5h-9a1.5 1.5 0 0 1-1.5-1.5v-9a1.5 1.5 0 0 1 1.5-1.5h3m1.5-4.5h7.5a1.5 1.5 0 0 1 1.5 1.5v7.5a1.5 1.5 0 0 1-1.5 1.5h-7.5a1.5 1.5 0 0 1-1.5-1.5v-7.5a1.5 1.5 0 0 1 1.5-1.5Z" />
+        </svg>
+      </button>
+      <button
         onClick={() => {
           if (window.confirm(`Delete "${timeline.name}" and all its moments?`))
             onDelete(timeline.id)
@@ -88,7 +97,9 @@ function SidebarContent({
   onSelect,
   onCreate,
   onRename,
+  onDuplicate,
   onDelete,
+  onImport,
   theme,
   onToggleTheme,
 }) {
@@ -126,6 +137,7 @@ function SidebarContent({
             active={t.id === activeId}
             onSelect={onSelect}
             onRename={onRename}
+            onDuplicate={onDuplicate}
             onDelete={onDelete}
           />
         ))}
@@ -159,6 +171,16 @@ function SidebarContent({
             New timeline
           </button>
         )}
+
+        <button
+          onClick={onImport}
+          className="flex w-full items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-indigo-400"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          Import timeline
+        </button>
       </nav>
 
       <div className="border-t border-slate-200/80 p-3 dark:border-slate-800">

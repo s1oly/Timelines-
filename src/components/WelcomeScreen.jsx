@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
-export default function WelcomeScreen({ onCreate, onOpenSidebar }) {
+export default function WelcomeScreen({ onCreate, onOpenSidebar, onImport }) {
   const [name, setName] = useState('')
 
   const submit = (e) => {
@@ -58,6 +58,16 @@ export default function WelcomeScreen({ onCreate, onOpenSidebar }) {
             Create
           </button>
         </form>
+
+        <button
+          onClick={onImport}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          or import a timeline from JSON
+        </button>
       </motion.div>
     </div>
   )

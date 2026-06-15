@@ -1,8 +1,15 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useMediaUrl } from '../lib/useMediaUrl.js'
+import { DEFAULT_ACCENT, accentAlpha } from '../lib/accent.js'
 
-export default function MomentDetail({ moment, onEdit, onDelete, onClose }) {
+export default function MomentDetail({
+  moment,
+  onEdit,
+  onDelete,
+  onClose,
+  accent = DEFAULT_ACCENT,
+}) {
   const mediaUrl = useMediaUrl(moment.mediaId)
 
   useEffect(() => {
@@ -50,14 +57,27 @@ export default function MomentDetail({ moment, onEdit, onDelete, onClose }) {
         <div className="overflow-y-auto p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-bold uppercase tracking-widest text-indigo-500 dark:text-indigo-400">
-                {new Date(moment.date + 'T00:00:00').toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: accent }}>
+                  {new Date(moment.date + 'T00:00:00').toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </p>
+                {moment.isMilestone && (
+                  <span
+                    className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                    style={{ backgroundColor: accent }}
+                  >
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M11.48 3.5a.56.56 0 0 1 1.04 0l2.13 4.33 4.78.69c.46.07.64.63.31.95l-3.46 3.37.82 4.76c.08.46-.4.81-.81.59L12 16.95l-4.28 2.25c-.41.22-.89-.13-.81-.59l.82-4.76-3.46-3.37a.56.56 0 0 1 .31-.95l4.78-.69 2.12-4.34Z" />
+                    </svg>
+                    Milestone
+                  </span>
+                )}
+              </div>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
                 {moment.title}
               </h2>
@@ -77,6 +97,20 @@ export default function MomentDetail({ moment, onEdit, onDelete, onClose }) {
             <p className="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-slate-600 dark:text-slate-300">
               {moment.description}
             </p>
+          )}
+
+          {moment.tags?.length > 0 && (
+            <div className="mt-5 flex flex-wrap gap-2">
+              {moment.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full px-3 py-1 text-xs font-semibold"
+                  style={{ backgroundColor: accentAlpha(accent, 12), color: accent }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           )}
 
           <div className="mt-8 flex items-center gap-3">

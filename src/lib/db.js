@@ -23,3 +23,14 @@ export async function deleteMedia(id) {
   const db = await dbPromise
   await db.delete('media', id)
 }
+
+// Copy an existing media blob to a fresh id (used when duplicating a
+// timeline). Returns the new id, or null when there is nothing to copy.
+export async function copyMedia(srcId, newId) {
+  if (!srcId) return null
+  const db = await dbPromise
+  const blob = await db.get('media', srcId)
+  if (!blob) return null
+  await db.put('media', blob, newId)
+  return newId
+}

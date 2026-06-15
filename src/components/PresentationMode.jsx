@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMediaUrl } from '../lib/useMediaUrl.js'
+import TimelineCover from './TimelineCover.jsx'
+import { DEFAULT_ACCENT } from '../lib/accent.js'
 
 // Slide + crossfade transition. `direction` is +1 when advancing, -1 when
 // going back, so a slide enters from the side it's travelling toward.
@@ -10,14 +12,19 @@ const slideVariants = {
   exit: (dir) => ({ x: dir >= 0 ? -64 : 64, opacity: 0 }),
 }
 
+// Milestone moments zoom in for a more dramatic reveal.
+const milestoneVariants = {
+  enter: { scale: 0.8, opacity: 0 },
+  center: { scale: 1, opacity: 1 },
+  exit: { scale: 1.08, opacity: 0 },
+}
+
 function SlideMedia({ moment }) {
   const url = useMediaUrl(moment.mediaId)
   if (!moment.mediaId) return null
 
   if (!url) {
-    return (
-      <div className="h-full w-full animate-pulse rounded-2xl bg-white/5" />
-    )
+    return <div className="h-full w-full animate-pulse rounded-2xl bg-white/5" />
   }
 
   return moment.mediaType === 'video' ? (
@@ -38,16 +45,20 @@ function SlideMedia({ moment }) {
   )
 }
 
-function Slide({ moment, direction }) {
+function MomentSlide({ moment, direction, accent }) {
+  const milestone = Boolean(moment.isMilestone)
   return (
     <motion.div
       key={moment.id}
       custom={direction}
-      variants={slideVariants}
+      variants={milestone ? milestoneVariants : slideVariants}
       initial="enter"
       animate="center"
       exit="exit"
-      transition={{ duration: 0.5, ease: [0.22, 0.61, 0.36, 1] }}
+      transition={{
+        duration: milestone ? 0.6 : 0.5,
+        ease: [0.22, 0.61, 0.36, 1],
+      }}
       className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-6 pb-28 pt-16 sm:px-16"
     >
       {moment.mediaId && (
@@ -61,14 +72,27 @@ function Slide({ moment, direction }) {
           moment.mediaId ? 'shrink-0' : 'flex flex-1 flex-col justify-center'
         }`}
       >
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400">
-          {new Date(moment.date + 'T00:00:00').toLocaleDateString(undefined, {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-          })}
-        </p>
+        <div className="flex items-center justify-center gap-2">
+          <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: accent }}>
+            {new Date(moment.date + 'T00:00:00').toLocaleDateString(undefined, {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </p>
+          {milestone && (
+            <span
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+              style={{ backgroundColor: accent }}
+            >
+              <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11.48 3.5a.56.56 0 0 1 1.04 0l2.13 4.33 4.78.69c.46.07.64.63.31.95l-3.46 3.37.82 4.76c.08.46-.4.81-.81.59L12 16.95l-4.28 2.25c-.41.22-.89-.13-.81-.59l.82-4.76-3.46-3.37a.56.56 0 0 1 .31-.95l4.78-.69 2.12-4.34Z" />
+              </svg>
+              Milestone
+            </span>
+          )}
+        </div>
         <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
           {moment.title}
         </h2>
@@ -77,15 +101,42 @@ function Slide({ moment, direction }) {
             {moment.description}
           </p>
         )}
+        {moment.tags?.length > 0 && (
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {moment.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
+    </motion.div>
+  )
+}
+
+function CoverSlide({ timeline, moments }) {
+  return (
+    <motion.div
+      key="cover"
+      initial={{ opacity: 0, scale: 1.06 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.98 }}
+      transition={{ duration: 0.7, ease: [0.22, 0.61, 0.36, 1] }}
+      className="absolute inset-0"
+    >
+      <TimelineCover timeline={timeline} moments={moments} variant="slide" />
     </motion.div>
   )
 }
 
 function HelpOverlay({ onClose }) {
   const rows = [
-    ['→  ↓  Space', 'Next moment'],
-    ['←  ↑', 'Previous moment'],
+    ['→  ↓  Space', 'Next'],
+    ['←  ↑', 'Previous'],
     ['Swipe', 'Navigate (mobile)'],
     ['?', 'Toggle this help'],
     ['Esc', 'Exit presentation'],
@@ -123,8 +174,11 @@ function HelpOverlay({ onClose }) {
   )
 }
 
-export default function PresentationMode({ moments, startIndex = 0, onClose }) {
-  const [[index, direction], setState] = useState([startIndex, 0])
+export default function PresentationMode({ timeline, moments, onClose }) {
+  const accent = timeline?.accentColor ?? DEFAULT_ACCENT
+  // Slide 0 is always the cover; moments follow.
+  const total = moments.length + 1
+  const [[index, direction], setState] = useState([0, 0])
   const [showHelp, setShowHelp] = useState(false)
   const containerRef = useRef(null)
   const touchStartX = useRef(null)
@@ -133,15 +187,13 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
     (dir) => {
       setState(([i]) => {
         const next = i + dir
-        if (next < 0 || next >= moments.length) return [i, 0]
+        if (next < 0 || next >= total) return [i, 0]
         return [next, dir]
       })
     },
-    [moments.length]
+    [total]
   )
 
-  // Enter fullscreen on mount; close presentation mode when fullscreen is
-  // left (e.g. the browser's native Escape) so the two stay in sync.
   useEffect(() => {
     const el = containerRef.current
     el?.requestFullscreen?.().catch(() => {})
@@ -184,9 +236,9 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
     touchStartX.current = null
   }
 
-  const moment = moments[index]
   const atStart = index === 0
-  const atEnd = index === moments.length - 1
+  const atEnd = index === total - 1
+  const moment = index > 0 ? moments[index - 1] : null
 
   return (
     <motion.div
@@ -201,9 +253,10 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
       {/* Top progress bar */}
       <div className="absolute inset-x-0 top-0 z-20 h-1 bg-white/5">
         <motion.div
-          className="h-full bg-indigo-500"
+          className="h-full"
+          style={{ backgroundColor: accent }}
           initial={false}
-          animate={{ width: `${((index + 1) / moments.length) * 100}%` }}
+          animate={{ width: `${((index + 1) / total) * 100}%` }}
           transition={{ ease: 'easeOut', duration: 0.4 }}
         />
       </div>
@@ -211,7 +264,7 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
       {/* Top controls */}
       <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
         <span className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-300">
-          {index + 1} / {moments.length}
+          {index + 1} / {total}
         </span>
         <button
           onClick={() => setShowHelp((h) => !h)}
@@ -236,14 +289,18 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
 
       {/* Slides */}
       <AnimatePresence custom={direction} mode="popLayout">
-        <Slide key={moment.id} moment={moment} direction={direction} />
+        {moment ? (
+          <MomentSlide key={moment.id} moment={moment} direction={direction} accent={accent} />
+        ) : (
+          <CoverSlide key="cover" timeline={timeline} moments={moments} />
+        )}
       </AnimatePresence>
 
       {/* Side navigation arrows (desktop) */}
       <button
         onClick={() => paginate(-1)}
         disabled={atStart}
-        aria-label="Previous moment"
+        aria-label="Previous"
         className="absolute left-4 top-1/2 z-20 hidden -translate-y-1/2 rounded-full bg-white/5 p-3 text-white transition-all hover:bg-white/10 disabled:pointer-events-none disabled:opacity-0 sm:block"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -253,7 +310,7 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
       <button
         onClick={() => paginate(1)}
         disabled={atEnd}
-        aria-label="Next moment"
+        aria-label="Next"
         className="absolute right-4 top-1/2 z-20 hidden -translate-y-1/2 rounded-full bg-white/5 p-3 text-white transition-all hover:bg-white/10 disabled:pointer-events-none disabled:opacity-0 sm:block"
       >
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -263,16 +320,17 @@ export default function PresentationMode({ moments, startIndex = 0, onClose }) {
 
       {/* Progress dots */}
       <div className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-2">
-        {moments.map((m, i) => (
+        {Array.from({ length: total }).map((_, i) => (
           <button
-            key={m.id}
+            key={i}
             onClick={() => setState(([cur]) => [i, i > cur ? 1 : -1])}
-            aria-label={`Go to moment ${i + 1}`}
-            className={`h-2 rounded-full transition-all ${
+            aria-label={`Go to slide ${i + 1}`}
+            className="h-2 rounded-full transition-all"
+            style={
               i === index
-                ? 'w-6 bg-indigo-500'
-                : 'w-2 bg-white/25 hover:bg-white/50'
-            }`}
+                ? { width: 24, backgroundColor: accent }
+                : { width: 8, backgroundColor: 'rgb(255 255 255 / 0.25)' }
+            }
           />
         ))}
       </div>

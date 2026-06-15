@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import MomentCard from './MomentCard.jsx'
+import TimelineCover from './TimelineCover.jsx'
 import { loadScroll, saveScroll } from '../lib/store.js'
+import { DEFAULT_ACCENT, accentAlpha } from '../lib/accent.js'
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(
@@ -45,15 +47,39 @@ function EmptyTimeline({ onAddMoment }) {
   )
 }
 
+function NoResults() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <svg className="h-10 w-10 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.2-5.2m1.7-4.05a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0Z" />
+      </svg>
+      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+        No moments match your filters.
+      </p>
+    </div>
+  )
+}
+
 export default function TimelineView({
+  timeline,
   timelineId,
   moments,
+  matchIds,
+  hasFilter = false,
+  showCover = true,
   onOpenMoment,
   onAddMoment,
 }) {
   const isMobile = useIsMobile()
   const scrollRef = useRef(null)
   const restoredRef = useRef(false)
+  const accent = timeline?.accentColor ?? DEFAULT_ACCENT
+
+  const isDimmed = (m) => hasFilter && matchIds && !matchIds.has(m.id)
+  const allDimmed = hasFilter && moments.every(isDimmed)
+
+  const coverConfigured =
+    showCover && (timeline?.cover?.mediaId || timeline?.cover?.subtitle)
 
   // Restore the saved scroll position once the moments are rendered.
   useEffect(() => {
@@ -94,25 +120,55 @@ export default function TimelineView({
     return <EmptyTimeline onAddMoment={onAddMoment} />
   }
 
+  if (allDimmed) {
+    return <NoResults />
+  }
+
   if (isMobile) {
     return (
       <div ref={scrollRef} className="timeline-scroll flex-1 overflow-y-auto">
         <div className="relative mx-auto max-w-lg px-5 py-10">
+          {coverConfigured && (
+            <div className="mb-8">
+              <TimelineCover timeline={timeline} moments={moments} variant="card" />
+            </div>
+          )}
           {/* Vertical track */}
-          <div className="absolute bottom-10 left-[29px] top-10 w-0.5 rounded-full bg-gradient-to-b from-indigo-200 via-indigo-300 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900" />
+          <div
+            className="absolute bottom-10 left-[29px] w-0.5 rounded-full"
+            style={{
+              top: coverConfigured ? 488 : 40,
+              background: `linear-gradient(to bottom, ${accentAlpha(accent, 35)}, ${accent}, ${accentAlpha(accent, 35)})`,
+            }}
+          />
           <div className="space-y-8">
-            {moments.map((moment, i) => (
-              <div key={moment.id} className="relative pl-12">
-                {/* Node */}
-                <div className="absolute left-[3px] top-6 h-4 w-4 rounded-full border-[3px] border-indigo-500 bg-white shadow-md shadow-indigo-500/30 dark:bg-slate-950" />
-                <MomentCard
-                  moment={moment}
-                  index={i}
-                  scrollRef={scrollRef}
-                  onClick={() => onOpenMoment(moment.id)}
-                />
-              </div>
-            ))}
+            {moments.map((moment, i) => {
+              const a = moment.accentColor ?? accent
+              const milestone = Boolean(moment.isMilestone)
+              return (
+                <div key={moment.id} className="relative pl-12">
+                  {/* Node */}
+                  <div
+                    className="absolute top-6 rounded-full border-[3px] bg-white shadow-md dark:bg-slate-950"
+                    style={{
+                      left: milestone ? '-1px' : '3px',
+                      height: milestone ? 22 : 16,
+                      width: milestone ? 22 : 16,
+                      borderColor: a,
+                      boxShadow: `0 4px 10px -2px ${accentAlpha(a, 50)}`,
+                    }}
+                  />
+                  <MomentCard
+                    moment={moment}
+                    index={i}
+                    scrollRef={scrollRef}
+                    accent={a}
+                    dimmed={isDimmed(moment)}
+                    onClick={() => onOpenMoment(moment.id)}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -125,32 +181,67 @@ export default function TimelineView({
       className="timeline-scroll flex flex-1 items-center overflow-x-auto overflow-y-hidden"
     >
       <div className="relative flex min-w-max items-end gap-0 px-16 py-12">
-        {/* Horizontal track — sits at the node row (date label 20px + 12px gap + half node 10px) */}
-        <div className="absolute bottom-[60px] left-0 right-0 h-0.5 rounded-full bg-gradient-to-r from-transparent via-indigo-300 to-transparent dark:via-indigo-700" />
-        {moments.map((moment, i) => (
-          <div
-            key={moment.id}
-            className="flex w-[340px] shrink-0 flex-col items-center px-4"
-          >
-            <MomentCard
-              moment={moment}
-              index={i}
-              scrollRef={scrollRef}
-              onClick={() => onOpenMoment(moment.id)}
-            />
-            {/* Stem connecting card to track */}
-            <div className="h-7 w-0.5 bg-gradient-to-b from-transparent to-indigo-300 dark:to-indigo-700" />
-            {/* Node on the track */}
-            <div className="z-10 h-5 w-5 rounded-full border-[3.5px] border-indigo-500 bg-white shadow-lg shadow-indigo-500/40 transition-transform hover:scale-125 dark:bg-slate-950" />
-            <p className="mt-3 h-5 text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">
-              {new Date(moment.date + 'T00:00:00').toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </p>
+        {/* Horizontal track */}
+        <div
+          className="absolute bottom-[60px] left-0 right-0 h-0.5 rounded-full"
+          style={{
+            background: `linear-gradient(to right, transparent, ${accentAlpha(accent, 60)}, transparent)`,
+          }}
+        />
+
+        {coverConfigured && (
+          <div className="mr-4 flex flex-col items-center self-center pb-[76px]">
+            <TimelineCover timeline={timeline} moments={moments} variant="card" />
           </div>
-        ))}
+        )}
+
+        {moments.map((moment, i) => {
+          const a = moment.accentColor ?? accent
+          const milestone = Boolean(moment.isMilestone)
+          return (
+            <div
+              key={moment.id}
+              className={`flex shrink-0 flex-col items-center px-4 ${
+                milestone ? 'w-[380px]' : 'w-[340px]'
+              }`}
+              style={milestone ? { marginBottom: 24 } : undefined}
+            >
+              <MomentCard
+                moment={moment}
+                index={i}
+                scrollRef={scrollRef}
+                accent={a}
+                dimmed={isDimmed(moment)}
+                onClick={() => onOpenMoment(moment.id)}
+              />
+              {/* Stem connecting card to track */}
+              <div
+                className="w-0.5"
+                style={{
+                  height: milestone ? 52 : 28,
+                  background: `linear-gradient(to bottom, transparent, ${accentAlpha(a, 60)})`,
+                }}
+              />
+              {/* Node on the track */}
+              <div
+                className="z-10 rounded-full border-[3.5px] bg-white transition-transform hover:scale-125 dark:bg-slate-950"
+                style={{
+                  height: milestone ? 24 : 20,
+                  width: milestone ? 24 : 20,
+                  borderColor: a,
+                  boxShadow: `0 6px 14px -2px ${accentAlpha(a, 55)}`,
+                }}
+              />
+              <p className="mt-3 h-5 text-xs font-semibold tracking-wide text-slate-400 dark:text-slate-500">
+                {new Date(moment.date + 'T00:00:00').toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </p>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

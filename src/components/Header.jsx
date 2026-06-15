@@ -5,6 +5,9 @@ export default function Header({
   onAddMoment,
   onPresent,
   onExport,
+  onToggleSearch,
+  searchActive,
+  onSettings,
 }) {
   return (
     <header className="flex items-center gap-3 border-b border-slate-200/80 bg-white/70 px-4 py-4 backdrop-blur-xl sm:px-8 dark:border-slate-800 dark:bg-slate-900/60">
@@ -28,6 +31,34 @@ export default function Header({
             : `${momentCount} moment${momentCount === 1 ? '' : 's'}`}
         </p>
       </div>
+
+      <button
+        onClick={onToggleSearch}
+        title="Search & filter"
+        aria-label="Search and filter"
+        aria-pressed={searchActive}
+        className={`flex shrink-0 items-center justify-center rounded-xl p-2.5 transition-colors ${
+          searchActive
+            ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400'
+            : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400'
+        }`}
+      >
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.2-5.2m1.7-4.05a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0Z" />
+        </svg>
+      </button>
+
+      <button
+        onClick={onSettings}
+        title="Timeline settings"
+        aria-label="Timeline settings"
+        className="flex shrink-0 items-center justify-center rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-indigo-400"
+      >
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.59 3.94c.09-.54.56-.94 1.11-.94h2.6c.55 0 1.02.4 1.11.94l.21 1.28c.05.32.27.59.56.74.13.06.25.13.37.21.27.16.6.2.89.09l1.21-.49c.51-.2 1.09 0 1.36.48l1.3 2.25c.27.47.16 1.07-.26 1.41l-1.01.82c-.25.21-.38.53-.36.85a4.4 4.4 0 0 1 0 .42c-.02.32.11.64.36.85l1.01.82c.42.34.53.94.26 1.41l-1.3 2.25c-.27.48-.85.68-1.36.48l-1.21-.49c-.29-.11-.62-.07-.89.09-.12.08-.24.15-.37.21-.29.15-.51.42-.56.74l-.21 1.28c-.09.54-.56.94-1.11.94h-2.6c-.55 0-1.02-.4-1.11-.94l-.21-1.28a1 1 0 0 0-.56-.74 4.5 4.5 0 0 1-.37-.21c-.27-.16-.6-.2-.89-.09l-1.21.49c-.51.2-1.09 0-1.36-.48l-1.3-2.25a1.06 1.06 0 0 1 .26-1.41l1.01-.82c.25-.21.38-.53.36-.85a4.4 4.4 0 0 1 0-.42c.02-.32-.11-.64-.36-.85l-1.01-.82a1.06 1.06 0 0 1-.26-1.41l1.3-2.25c.27-.48.85-.68 1.36-.48l1.21.49c.29.11.62.07.89-.09.12-.08.24-.15.37-.21.29-.15.51-.42.56-.74l.21-1.28Z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </button>
 
       {momentCount > 0 && (
         <>
