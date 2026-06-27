@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import Sidebar from './components/Sidebar.jsx'
 import Header from './components/Header.jsx'
 import TimelineView from './components/TimelineView.jsx'
@@ -13,6 +13,7 @@ import ImportModal from './components/ImportModal.jsx'
 import { copyMedia, deleteMedia, putMedia } from './lib/db.js'
 import { mediaStringToBlob } from './lib/media.js'
 import { exportTimeline } from './lib/exportTimeline.js'
+import { exportVideo } from './lib/exportVideo.js'
 import { DEFAULT_ACCENT } from './lib/accent.js'
 import {
   clearScroll,
@@ -44,6 +45,7 @@ export default function App() {
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [videoProgress, setVideoProgress] = useState(null)
 
   useEffect(() => saveData(data), [data])
   useEffect(() => saveActiveId(activeId), [activeId])
@@ -371,6 +373,16 @@ export default function App() {
     if (activeTimeline) exportTimeline(activeTimeline, moments)
   }, [activeTimeline, moments])
 
+  const exportActiveTimelineAsVideo = useCallback(async () => {
+    if (!activeTimeline || videoProgress !== null) return
+    setVideoProgress(0)
+    try {
+      await exportVideo(activeTimeline, moments, setVideoProgress)
+    } finally {
+      setVideoProgress(null)
+    }
+  }, [activeTimeline, moments, videoProgress])
+
   const patchFilters = useCallback(
     (patch) => setFilters((f) => ({ ...f, ...patch })),
     []
@@ -415,6 +427,7 @@ export default function App() {
               onAddMoment={() => setFormState({})}
               onPresent={() => setPresenting(true)}
               onExport={exportActiveTimeline}
+              onExportVideo={exportActiveTimelineAsVideo}
               onToggleSearch={() => setSearchOpen((v) => !v)}
               searchActive={searchOpen}
               onSettings={() => setSettingsOpen(true)}
@@ -499,6 +512,26 @@ export default function App() {
             moments={moments}
             onClose={() => setPresenting(false)}
           />
+        )}
+        {videoProgress !== null && (
+          <motion.div
+            key="video-export"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm"
+          >
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-700 border-t-indigo-500" />
+            <p className="mt-5 text-lg font-semibold text-white">Generating video…</p>
+            <div className="mt-4 h-2 w-64 overflow-hidden rounded-full bg-slate-800">
+              <div
+                className="h-full rounded-full bg-indigo-500 transition-all duration-200"
+                style={{ width: `${Math.round(videoProgress * 100)}%` }}
+              />
+            </div>
+            <p className="mt-2 text-sm tabular-nums text-slate-400">{Math.round(videoProgress * 100)}%</p>
+            <p className="mt-5 text-xs text-slate-500">Keep this tab active during export</p>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

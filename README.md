@@ -1,7 +1,7 @@
 # Timelines
 
 A personal visual timeline app. Create multiple named timelines and fill them
-with rich-media "moments" — titles, dates, descriptions, photos, and videos —
+with rich-media "moments": titles, dates, descriptions, photos, and videos —
 laid out on a smooth horizontal scrolling track.
 
 ## Features
